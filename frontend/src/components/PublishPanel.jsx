@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { API_URL } from '../api'
 
 export default function PublishPanel({ regenData, user }) {
   const [scheduledAt, setScheduledAt] = useState('')
@@ -19,7 +20,7 @@ export default function PublishPanel({ regenData, user }) {
     setError(null)
     setResult(null)
     try {
-      const res = await fetch('http://localhost:3001/api/publish/now', {
+      const res = await fetch(`${API_URL}/api/publish/now`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -44,7 +45,7 @@ export default function PublishPanel({ regenData, user }) {
     setError(null)
     setResult(null)
     try {
-      const res = await fetch('http://localhost:3001/api/publish/schedule', {
+      const res = await fetch(`${API_URL}/api/publish/schedule`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

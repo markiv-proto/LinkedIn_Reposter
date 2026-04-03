@@ -12,7 +12,7 @@ router.post('/', async (req, res) => {
     console.log('content length:', content?.length)
     console.log('tone:', tone)
     console.log('length:', length)
-    console.log('API KEY exists:', !!process.env.ANTHROPIC_API_KEY)
+    console.log('API KEY exists:', !!process.env.GROQ_API_KEY)
 
     if (!content) {
         return res.status(400).json({ error: 'Content is required' })

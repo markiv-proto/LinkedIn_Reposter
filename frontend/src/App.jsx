@@ -5,6 +5,7 @@ import RegenControls from './components/RegenControls'
 import RegenCard from './components/RegenCard'
 import LinkedInConnect from './components/LinkedInConnect'
 import PublishPanel from './components/PublishPanel'
+import { API_URL } from './api'
 
 export default function App() {
   const [postData, setPostData] = useState(null)
@@ -17,7 +18,7 @@ export default function App() {
   const [user, setUser] = useState(null)
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/auth/me', { credentials: 'include' })
+    fetch(`${API_URL}/api/auth/me`, { credentials: 'include' })
       .then((r) => r.json())
       .then((data) => { if (data.user !== null && data.id) setUser(data) })
       .catch(() => { })
@@ -25,7 +26,7 @@ export default function App() {
     const params = new URLSearchParams(window.location.search)
     if (params.get('auth') === 'success') {
       window.history.replaceState({}, '', '/')
-      fetch('http://localhost:3001/api/auth/me', { credentials: 'include' })
+      fetch(`${API_URL}/api/auth/me`, { credentials: 'include' })
         .then((r) => r.json())
         .then((data) => { if (data.id) setUser(data) })
         .catch(() => { })
@@ -34,7 +35,7 @@ export default function App() {
 
 
   const handleLogout = async () => {
-    await fetch('http://localhost:3001/api/auth/logout', {
+    await fetch(`${API_URL}/api/auth/logout`, {
       method: 'POST',
       credentials: 'include',
     })
@@ -47,7 +48,7 @@ export default function App() {
     setPostData(null)
     setRegenData(null)
     try {
-      const res = await fetch('http://localhost:3001/api/scrape', {
+      const res = await fetch(`${API_URL}/api/scrape`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
@@ -66,7 +67,7 @@ export default function App() {
     setRegenLoading(true)
     setError(null)
     try {
-      const res = await fetch('http://localhost:3001/api/regen', {
+      const res = await fetch(`${API_URL}/api/regen`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -90,7 +91,7 @@ export default function App() {
     if (!regenData) return
     setRegenLoading(true)
     try {
-      const res = await fetch('http://localhost:3001/api/regen', {
+      const res = await fetch(`${API_URL}/api/regen`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,6 +1,8 @@
+import { API_URL } from "../api"
+
 export default function LinkedInConnect({ user, onLogout }) {
   const handleLogin = () => {
-    window.location.href = 'http://localhost:3001/api/auth/linkedin'
+    window.location.href = `${API_URL}/api/auth/linkedin`
   }
 
   if (user) {
