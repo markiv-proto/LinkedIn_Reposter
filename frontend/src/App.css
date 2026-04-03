@@ -1,0 +1,17 @@
+/* Thin, subtle scrollbars */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+
+
+
+/* Reveal on hover */
+.overflow-y-auto:hover {
+  scrollbar-width: thin;
+}
+
+.overflow-y-auto:hover::-webkit-scrollbar {
+  display: auto;
+  width: 6px;
+}
