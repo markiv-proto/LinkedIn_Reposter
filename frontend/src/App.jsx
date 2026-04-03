@@ -111,7 +111,7 @@ export default function App() {
   }
 
   return (
-    <div className="max-w-full h-dvh flex flex-col bg-blue-200 py-6 px-6 m-5 rounded-2xl overflow-hidden ">
+    <div className="max-w-full md:h-dvh flex flex-col bg-blue-200 py-6 px-6 m-5 rounded-2xl overflow-hidden ">
 
       {/* Header — static, never scrolls */}
       <div className="mb-4 shrink-0">
@@ -143,11 +143,11 @@ export default function App() {
       {/* Main grid — fills remaining height */}
       <div className='flex-1 min-h-0 overflow-hidden'>
         <div
-          className={`h-full grid gap-5 ${postData ? 'grid-cols-2' : 'grid-cols-1'
+          className={` h-full grid gap-5 ${postData ? ' flex flex-col md:grid-cols-2' : 'grid-cols-1'
             }`}
         >
           {/* Left col — scraped post, scrollable */}
-          <div className="min-h-0 max-h-full overflow-y-auto scrollbar-thin">
+          <div className=" min-h-0 max-h-full overflow-y-auto scrollbar-thin">
             {postData && <PostCard data={postData} />}
           </div>
 

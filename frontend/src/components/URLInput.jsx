@@ -9,7 +9,7 @@ export default function URLInput({ onScrape, loading }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
+    <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-2">
       <input
         type="url"
         value={url}

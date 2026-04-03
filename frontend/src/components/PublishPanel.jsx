@@ -103,7 +103,7 @@ export default function PublishPanel({ regenData, user }) {
   }
 
   return (
-    <div className="mt-4 bg-white rounded-xl border border-gray-200 p-5">
+    <div className="bg-white rounded-xl border border-gray-200 p-5">
       <p className="text-sm font-medium text-gray-700 mb-4">Publish to LinkedIn</p>
 
       {error && (

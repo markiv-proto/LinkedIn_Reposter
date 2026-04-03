@@ -1,8 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function RegenCard({ data, onRegenContent, onRegenImage, loading }) {
   const [editedContent, setEditedContent] = useState(data.content)
   const [isEditing, setIsEditing] = useState(false)
+
+  useEffect(() => {
+    setEditedContent(data.content)
+    setIsEditing(false)
+  }, [data.content])
+
 
   return (
     <div className="bg-white rounded-xl border-2 border-blue-200 overflow-hidden">
