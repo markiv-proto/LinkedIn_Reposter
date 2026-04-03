@@ -18,15 +18,16 @@ app.use(cors({
 }))
 app.use(express.json())
 
+app.set('trust proxy', 1)  // ← express knows it's behind Render's proxy
 app.use(session({
     secret: process.env.SESSION_SECRET || 'dev_secret',
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: false, 
+        secure: process.env.NODE_ENV === 'production', 
         httpOnly: true, 
         maxAge: 24 * 60 * 60 * 1000,
-        sameSite: 'lax',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
      },
 }))
 
