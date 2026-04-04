@@ -15,6 +15,8 @@ const app = express()
 app.use(cors({
     origin: process.env.FRONTEND_URL || 'http://localhost:5173',
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
 }))
 app.use(express.json())
 
@@ -23,12 +25,12 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'dev_secret',
     resave: false,
     saveUninitialized: false,
-    cookie: { 
-        secure: true, 
-        httpOnly: true, 
+    cookie: {
+        secure: true,
+        httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000,
         sameSite: 'none',
-     },
+    },
 }))
 
 app.use('/api/scrape', scrapeRouter)

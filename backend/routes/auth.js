@@ -27,8 +27,6 @@ router.get('/linkedin/callback', async (req, res) => {
     const tokenData = await getAccessToken(code)
     const profile = await getProfile(tokenData.access_token)
 
-    console.log('Profile from LinkedIn:', profile)
-
     const rawId = profile.sub || ''
     const userId = rawId.includes('urn:li:person:')
       ? rawId.replace('urn:li:person:', '')
@@ -40,15 +38,28 @@ router.get('/linkedin/callback', async (req, res) => {
       picture: profile.picture,
       accessToken: tokenData.access_token,
     }
-    
-    console.log('Session saved for:', profile.name, '| userId:', userId)
 
-    res.redirect(`${process.env.FRONTEND_URL}?auth=success`)
+    // Save session explicitly before redirect
+    req.session.save((err) => {
+      if (err) console.error('Session save error:', err)
+
+      // Pass user info in URL as fallback
+      const params = new URLSearchParams({
+        auth: 'success',
+        userId,
+        name: profile.name,
+        picture: profile.picture || '',
+        token: tokenData.access_token,
+      })
+
+      res.redirect(`${process.env.FRONTEND_URL}?${params}`)
+    })
   } catch (err) {
     console.error('Auth error:', err.message)
     res.redirect(`${process.env.FRONTEND_URL}?error=auth_failed`)
   }
 })
+
 
 router.get('/me', (req, res) => {
   if (!req.session.user) {

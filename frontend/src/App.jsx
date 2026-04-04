@@ -21,19 +21,39 @@ export default function App() {
 
     fetch(`${API_URL}/health`).catch(() => { })
 
-    fetch(`${API_URL}/api/auth/me`, { credentials: 'include' })
-      .then((r) => r.json())
-      .then((data) => { if (data.user !== null && data.id) setUser(data) })
-      .catch(() => { })
-
     const params = new URLSearchParams(window.location.search)
+
     if (params.get('auth') === 'success') {
+      // Read user directly from URL params — no cookie needed
+      const userData = {
+        id: params.get('userId'),
+        name: params.get('name'),
+        picture: params.get('picture'),
+        accessToken: params.get('token'),
+      }
+      setUser(userData)
+      // Store in localStorage so it persists on refresh
+      localStorage.setItem('li_user', JSON.stringify(userData))
       window.history.replaceState({}, '', '/')
-      fetch(`${API_URL}/api/auth/me`, { credentials: 'include' })
-        .then((r) => r.json())
-        .then((data) => { if (data.id) setUser(data) })
-        .catch(() => { })
+      return
     }
+
+    // Check localStorage on every load
+    const stored = localStorage.getItem('li_user')
+    if (stored) {
+      try {
+        setUser(JSON.parse(stored))
+      } catch {
+        localStorage.removeItem('li_user')
+      }
+      return
+    }
+
+    // Fall back to session check
+    fetch(`${API_URL}/api/auth/me`, { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data?.id) setUser(data) })
+      .catch(() => { })
   }, [])
 
 
@@ -41,7 +61,8 @@ export default function App() {
     await fetch(`${API_URL}/api/auth/logout`, {
       method: 'POST',
       credentials: 'include',
-    })
+    }).catch(() => { })
+    localStorage.removeItem('li_user')
     setUser(null)
   }
 

@@ -27,6 +27,8 @@ export default function PublishPanel({ regenData, user }) {
         body: JSON.stringify({
           content: regenData.content,
           imageUrl: regenData.imageUrl,
+          userId: user.id,
+          accessToken: user.accessToken
         }),
       })
       const data = await res.json()
@@ -53,6 +55,8 @@ export default function PublishPanel({ regenData, user }) {
           content: regenData.content,
           imageUrl: regenData.imageUrl,
           scheduledAt,
+          userId: user.id,
+          accessToken: user.accessToken,
         }),
       })
       const data = await res.json()

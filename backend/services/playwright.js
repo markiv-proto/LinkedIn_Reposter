@@ -3,16 +3,16 @@ import * as cheerio from 'cheerio'
 
 export async function scrapeLinkedInPost(url) {
   try {
-    const res = await axios.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      },
-      timeout: 15000,
-    })
+    // Use a CORS proxy to bypass LinkedIn's bot detection
+    const encodedUrl = encodeURIComponent(url)
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodedUrl}`
 
-    const $ = cheerio.load(res.data)
+    const res = await axios.get(proxyUrl, { timeout: 15000 })
+    const html = res.data.contents
+
+    if (!html) throw new Error('No content returned from proxy')
+
+    const $ = cheerio.load(html)
 
     const getMeta = (prop) =>
       $(`meta[property="${prop}"]`).attr('content') ||
@@ -23,6 +23,7 @@ export async function scrapeLinkedInPost(url) {
     const imageUrl = getMeta('og:image') || null
     const title = getMeta('og:title') || ''
 
+    // Extract links
     const links = []
     $('a[href]').each((_, el) => {
       const href = $(el).attr('href')
@@ -38,7 +39,30 @@ export async function scrapeLinkedInPost(url) {
 
     const uniqueLinks = [...new Set(links)]
 
-    return { success: true, content, imageUrl, title, links: uniqueLinks, url }
+    // If og:description is empty, try to extract from JSON-LD
+    let finalContent = content
+    if (!finalContent) {
+      $('script[type="application/ld+json"]').each((_, el) => {
+        try {
+          const json = JSON.parse($(el).html())
+          if (json.description) finalContent = json.description
+          if (json.articleBody) finalContent = json.articleBody
+        } catch { /* skip */ }
+      })
+    }
+
+    if (!finalContent && !imageUrl) {
+      throw new Error('LinkedIn returned no content. The post may be private or LinkedIn blocked the request.')
+    }
+
+    return {
+      success: true,
+      content: finalContent,
+      imageUrl,
+      title,
+      links: uniqueLinks,
+      url,
+    }
   } catch (err) {
     return { success: false, error: err.message }
   }
