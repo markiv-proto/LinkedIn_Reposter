@@ -8,18 +8,20 @@ export default function LinkedInConnect({ user, onLogout }) {
   const handleLogin = async () => {
     setChecking(true)
     try {
+      // Keep pinging until backend is awake
       let awake = false
       for (let i = 0; i < 10; i++) {
         try {
           const res = await fetch(`${API_URL}/health`, { signal: AbortSignal.timeout(5000) })
           if (res.ok) { awake = true; break }
-        } catch { }
-
+        } catch {
+          // still sleeping, wait and retry
+        }
         await new Promise((r) => setTimeout(r, 3000))
       }
 
       if (!awake) {
-        alert('Backend is taking too long to start. Please try again in 30s')
+        alert('Backend is taking too long to start. Please try again in 30 seconds.')
         return
       }
 
@@ -52,6 +54,7 @@ export default function LinkedInConnect({ user, onLogout }) {
   return (
     <button
       onClick={handleLogin}
+      disabled={checking}
       className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#0A66C2] hover:bg-[#004182] text-white text-sm font-medium transition-colors"
     >
       {checking ? 'Connecting — waking up server...' : 'Connect LinkedIn'}
