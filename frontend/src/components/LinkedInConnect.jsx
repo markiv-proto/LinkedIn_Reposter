@@ -1,8 +1,32 @@
 import { API_URL } from "../api"
+import { useState } from "react"
 
 export default function LinkedInConnect({ user, onLogout }) {
-  const handleLogin = () => {
-    window.location.href = `${API_URL}/api/auth/linkedin`
+
+  const [checking, setChecking] = useState(false)
+
+  const handleLogin = async () => {
+    setChecking(true)
+    try {
+      let awake = false
+      for (let i = 0; i < 10; i++) {
+        try {
+          const res = await fetch(`${API_URL}/health`, { signal: AbortSignal.timeout(5000) })
+          if (res.ok) { awake = true; break }
+        } catch { }
+
+        await new Promise((r) => setTimeout(r, 3000))
+      }
+
+      if (!awake) {
+        alert('Backend is taking too long to start. Please try again in 30s')
+        return
+      }
+
+      window.location.href = `${API_URL}/api/auth/linkedin`
+    } finally {
+      setChecking(false)
+    }
   }
 
   if (user) {
@@ -30,7 +54,7 @@ export default function LinkedInConnect({ user, onLogout }) {
       onClick={handleLogin}
       className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#0A66C2] hover:bg-[#004182] text-white text-sm font-medium transition-colors"
     >
-      Connect LinkedIn
+      {checking ? 'Connecting — waking up server...' : 'Connect LinkedIn'}
     </button>
   )
 }

@@ -18,6 +18,9 @@ export default function App() {
   const [user, setUser] = useState(null)
 
   useEffect(() => {
+
+    fetch(`${API_URL}/health`).catch(() => { })
+
     fetch(`${API_URL}/api/auth/me`, { credentials: 'include' })
       .then((r) => r.json())
       .then((data) => { if (data.user !== null && data.id) setUser(data) })
