@@ -30,6 +30,8 @@ router.post('/now', async (req, res) => {
 router.post('/schedule', async (req, res) => {
   const { content, imageUrl, scheduledAt, userId, accessToken } = req.body
 
+  console.log('Scheduling for:', scheduledAt, '→ parsed:', new Date(scheduledAt))
+
   if (!userId || !accessToken) {
     return res.status(401).json({ error: 'Not authenticated. Please connect LinkedIn first.' })
   }

@@ -47,6 +47,9 @@ export default function PublishPanel({ regenData, user }) {
     setError(null)
     setResult(null)
     try {
+      const localDate = new Date(scheduledAt)
+      const isoWithOffset = localDate.toISOString()
+
       const res = await fetch(`${API_URL}/api/publish/schedule`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -54,7 +57,7 @@ export default function PublishPanel({ regenData, user }) {
         body: JSON.stringify({
           content: regenData.content,
           imageUrl: regenData.imageUrl,
-          scheduledAt,
+          scheduledAt: isoWithOffset,
           userId: user.id,
           accessToken: user.accessToken,
         }),
