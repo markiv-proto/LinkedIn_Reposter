@@ -1,53 +1,45 @@
-import { chromium } from 'playwright'
+import axios from 'axios'
+import * as cheerio from 'cheerio'
 
 export async function scrapeLinkedInPost(url) {
-    const browser = await chromium.launch({ headless: true })
-    const context = await browser.newContext({
-        userAgent:
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  try {
+    const res = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+      timeout: 15000,
     })
-    const page = await context.newPage()
 
-    try {
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 })
-        await page.waitForTimeout(2500)
+    const $ = cheerio.load(res.data)
 
-        const data = await page.evaluate(() => {
-            const getMeta = (prop) => {
-                const el = document.querySelector(`meta[property="${prop}"]`) ||
-                    document.querySelector(`meta[name="${prop}"]`)
-                return el ? el.getAttribute('content') : null
-            }
+    const getMeta = (prop) =>
+      $(`meta[property="${prop}"]`).attr('content') ||
+      $(`meta[name="${prop}"]`).attr('content') ||
+      null
 
-            // Extract post text from og:description or visible text
-            const content =
-                getMeta('og:description') ||
-                document.querySelector('.attributed-text-segment-list__content')
-                    ?.innerText ||
-                ''
+    const content = getMeta('og:description') || ''
+    const imageUrl = getMeta('og:image') || null
+    const title = getMeta('og:title') || ''
 
-            // Extract image
-            const imageUrl = getMeta('og:image') || null
+    const links = []
+    $('a[href]').each((_, el) => {
+      const href = $(el).attr('href')
+      if (
+        href &&
+        href.startsWith('http') &&
+        !href.includes('linkedin.com/in/') &&
+        !href.includes('linkedin.com/company/')
+      ) {
+        links.push(href)
+      }
+    })
 
-            // Extract title / author
-            const title = getMeta('og:title') || ''
+    const uniqueLinks = [...new Set(links)]
 
-            // Extract all hyperlinks in the post body
-            const linkEls = document.querySelectorAll('a[href]')
-            const links = [...linkEls].map((a) => a.href).filter((h) =>
-                h.startsWith('http') &&
-                !h.includes('linkedin.com/in/') &&
-                !h.includes('linkedin.com/company/')
-            )
-            const uniqueLinks = [...new Set(links)]
-
-            return { content, imageUrl, title, links: uniqueLinks }
-        })
-        return { success: true, ...data, url }
-    }
-    catch (err) {
-        return { success: false, error: err.message }
-    } finally {
-        await browser.close()
-    }
+    return { success: true, content, imageUrl, title, links: uniqueLinks, url }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
 }
