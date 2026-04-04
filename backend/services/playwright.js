@@ -1,17 +1,35 @@
 import axios from 'axios'
 import * as cheerio from 'cheerio'
 
+async function fetchWithProxy(url) {
+  const proxies = [
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+    `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    `https://thingproxy.freeboard.io/fetch/${url}`,
+  ]
+
+  for (const proxy of proxies) {
+    try {
+      const res = await axios.get(proxy, { timeout: 12000 })
+      const html = proxy.includes('allorigins')
+        ? res.data.contents
+        : res.data
+
+      if (html && html.length > 500) {
+        console.log('Proxy worked:', proxy)
+        return html
+      }
+    } catch (err) {
+      console.log('Proxy failed:', proxy, err.message)
+    }
+  }
+
+  throw new Error('All proxies failed or timed out')
+}
+
 export async function scrapeLinkedInPost(url) {
   try {
-    // Use a CORS proxy to bypass LinkedIn's bot detection
-    const encodedUrl = encodeURIComponent(url)
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodedUrl}`
-
-    const res = await axios.get(proxyUrl, { timeout: 15000 })
-    const html = res.data.contents
-
-    if (!html) throw new Error('No content returned from proxy')
-
+    const html = await fetchWithProxy(url)
     const $ = cheerio.load(html)
 
     const getMeta = (prop) =>
@@ -23,7 +41,18 @@ export async function scrapeLinkedInPost(url) {
     const imageUrl = getMeta('og:image') || null
     const title = getMeta('og:title') || ''
 
-    // Extract links
+    // Try JSON-LD if og:description is empty
+    let finalContent = content
+    if (!finalContent) {
+      $('script[type="application/ld+json"]').each((_, el) => {
+        try {
+          const json = JSON.parse($(el).html())
+          if (json.description) finalContent = json.description
+          if (json.articleBody) finalContent = json.articleBody
+        } catch { }
+      })
+    }
+
     const links = []
     $('a[href]').each((_, el) => {
       const href = $(el).attr('href')
@@ -37,33 +66,28 @@ export async function scrapeLinkedInPost(url) {
       }
     })
 
-    const uniqueLinks = [...new Set(links)]
-
-    // If og:description is empty, try to extract from JSON-LD
-    let finalContent = content
-    if (!finalContent) {
-      $('script[type="application/ld+json"]').each((_, el) => {
-        try {
-          const json = JSON.parse($(el).html())
-          if (json.description) finalContent = json.description
-          if (json.articleBody) finalContent = json.articleBody
-        } catch { /* skip */ }
-      })
-    }
-
-    if (!finalContent && !imageUrl) {
-      throw new Error('LinkedIn returned no content. The post may be private or LinkedIn blocked the request.')
-    }
-
     return {
       success: true,
       content: finalContent,
       imageUrl,
       title,
-      links: uniqueLinks,
+      links: [...new Set(links)],
       url,
+      warning: !finalContent
+        ? 'Could not extract post content. Please paste it manually below.'
+        : null,
     }
   } catch (err) {
-    return { success: false, error: err.message }
+    console.error('Scrape error:', err.message)
+    // Don't return 500 — return empty shell so user can paste manually
+    return {
+      success: true,
+      content: '',
+      imageUrl: null,
+      title: 'LinkedIn Post',
+      links: [url],
+      url,
+      warning: 'Could not extract post content automatically. Please paste it manually below.',
+    }
   }
 }
