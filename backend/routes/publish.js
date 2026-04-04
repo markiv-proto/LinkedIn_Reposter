@@ -10,79 +10,59 @@ const router = Router()
 //     }
 //     next()
 // }
-
 router.post('/now', async (req, res) => {
-    const { content, imageUrl } = req.body
-    // const { id: userId, accessToken } = req.session.user
+  const { content, imageUrl, userId, accessToken } = req.body
 
-    if (!userId || !accessToken) {
-        return res.status(401).json({ error: 'Not authenticated. Please connect LinkedIn first.' })
-    }
+  if (!userId || !accessToken) {
+    return res.status(401).json({ error: 'Not authenticated. Please connect LinkedIn first.' })
+  }
+  if (!content) return res.status(400).json({ error: 'Content is required' })
 
-    console.log('Publish request — userId:', userId, '| hasToken:', !!accessToken)
-
-    if (!content) return res.status(400).json({ error: 'Content is required' })
-
-    try {
-        const result = await publishPost({ accessToken, userId, content, imageUrl })
-
-        res.json({ success: true, postId: result.id })
-
-        // const rawId = result.id || ''
-        // const postId = rawId.startsWith('urn:li:share:')
-        // ? rawId.replace('urn:li:share:','') : rawId 
-
-        // const postId = rawId.startsWith('urn:li:activity:')
-        //     ? rawId.replace('urn:li:activity:', '')
-        //     : rawId
-
-        // console.log('postID: ', postId)
-        // res.json({ success: true, postId })
-    } catch (err) {
-        console.error('Publish error: ', err.response?.data?.message || err.message)
-        res.status(500).json({ error: err.response?.data?.message || err.message })
-    }
+  try {
+    const result = await publishPost({ accessToken, userId, content, imageUrl })
+    res.json({ success: true, postId: result.id })
+  } catch (err) {
+    console.error('Publish error: ', err.response?.data || err.message)
+    res.status(500).json({ error: err.response?.data?.message || err.message })
+  }
 })
 
-router.post("/schedule", async (req, res) => {
-    const { content, imageUrl, scheduledAt } = req.body
+router.post('/schedule', async (req, res) => {
+  const { content, imageUrl, scheduledAt, userId, accessToken } = req.body
 
-    if (!userId || !accessToken) {
-        return res.status(401).json({ error: 'Not authenticated. Please connect LinkedIn first.' })
-    }
+  if (!userId || !accessToken) {
+    return res.status(401).json({ error: 'Not authenticated. Please connect LinkedIn first.' })
+  }
+  if (!content || !scheduledAt) {
+    return res.status(400).json({ error: 'Content and scheduledAt are required' })
+  }
+  if (new Date(scheduledAt) <= new Date()) {
+    return res.status(400).json({ error: 'Scheduled time must be in the future' })
+  }
 
-    if (!content || !scheduledAt) {
-        return res.status(400).json({ error: 'Content and scheduledAt are required' })
-    }
-
-    if (new Date(scheduledAt) <= new Date()) {
-        return res.status(400).json({ error: "Scheduled time must be in the future." })
-    }
-
-    try {
-        const post = await ScheduledPost.create({
-            userId,
-            accessToken,
-            content,
-            imageUrl,
-            scheduledAt: new Date(scheduledAt),
-        })
-        res.json({ success: true, jobId: post._id, scheduledAt: post.scheduledAt })
-    } catch (err) {
-        res.status(500).json({ error: err.message })
-    }
+  try {
+    const post = await ScheduledPost.create({
+      userId,
+      accessToken,
+      content,
+      imageUrl,
+      scheduledAt: new Date(scheduledAt),
+    })
+    res.json({ success: true, jobId: post._id, scheduledAt: post.scheduledAt })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
 })
-
 
 router.get('/scheduled', async (req, res) => {
-    const { userId } = req.query
-    if (!userId) return res.status(401).json({ error: 'userId required' })
-    try {
-        const posts = await ScheduledPost.find({ userId }).sort({ scheduledAt: 1 })
-        res.json(posts)
-    } catch (err) {
-        res.status(500).json({ error: err.message })
-    }
+  const { userId } = req.query
+  if (!userId) return res.status(401).json({ error: 'userId required' })
+  try {
+    const posts = await ScheduledPost.find({ userId }).sort({ scheduledAt: 1 })
+    res.json(posts)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
 })
 
 
