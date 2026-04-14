@@ -172,13 +172,13 @@ export default function App() {
             }`}
         >
           {/* Left col — scraped post, scrollable */}
-          <div className=" min-h-0 max-h-full overflow-y-auto scrollbar-thin">
+          <div className=" min-h-0 max-h-100 md:max-h-full overflow-y-auto scrollbar-thin">
             {postData && <PostCard data={postData} />}
           </div>
 
           {/* Right col — regen controls + result + publish, scrollable */}
           {postData && (
-            <div className="min-h-0 max-h-full overflow-y-auto scrollbar-thin pr-1 flex flex-col gap-4">
+            <div className="min-h-0 max-h-100 md:max-h-full overflow-y-auto scrollbar-thin pr-1 flex flex-col gap-4">
               <div>
                 <RegenControls
                   tone={tone}

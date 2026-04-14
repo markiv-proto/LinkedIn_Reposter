@@ -11,7 +11,9 @@ const router = Router()
 //     next()
 // }
 router.post('/now', async (req, res) => {
-  const { content, imageUrl, userId, accessToken } = req.body
+  const { content, imageUrl, userId, accessToken, organizationId } = req.body
+
+  console.log("Publish request - userId: ", userId, "| organizationId: ", organizationId)
 
   if (!userId || !accessToken) {
     return res.status(401).json({ error: 'Not authenticated. Please connect LinkedIn first.' })
@@ -19,7 +21,7 @@ router.post('/now', async (req, res) => {
   if (!content) return res.status(400).json({ error: 'Content is required' })
 
   try {
-    const result = await publishPost({ accessToken, userId, content, imageUrl })
+    const result = await publishPost({ accessToken, userId, content, imageUrl, organizationId: organizationId || null, })
     res.json({ success: true, postId: result.id })
   } catch (err) {
     console.error('Publish error: ', err.response?.data || err.message)
@@ -28,7 +30,7 @@ router.post('/now', async (req, res) => {
 })
 
 router.post('/schedule', async (req, res) => {
-  const { content, imageUrl, scheduledAt, userId, accessToken } = req.body
+  const { content, imageUrl, scheduledAt, userId, accessToken, organizationId } = req.body
 
   console.log('Scheduling for:', scheduledAt, '→ parsed:', new Date(scheduledAt))
 
@@ -49,6 +51,7 @@ router.post('/schedule', async (req, res) => {
       content,
       imageUrl,
       scheduledAt: new Date(scheduledAt),
+      organizationId,
     })
     res.json({ success: true, jobId: post._id, scheduledAt: post.scheduledAt })
   } catch (err) {

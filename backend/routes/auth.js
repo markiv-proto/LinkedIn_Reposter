@@ -1,9 +1,9 @@
 import { Router } from 'express'
-import { getAccessToken, getProfile } from '../services/linkedin.js'
+import { getAccessToken, getProfile, getOrganizations } from '../services/linkedin.js'
 
 const router = Router()
 
-const SCOPES = ['openid', 'profile', 'w_member_social'].join(' ')
+const SCOPES = ['openid', 'profile', 'w_member_social', 'r_organization_social', 'rw_organization_admin', 'w_organization_social',].join(' ')
 
 router.get('/linkedin', (req, res) => {
   const params = new URLSearchParams({
@@ -73,5 +73,21 @@ router.post('/logout', (req, res) => {
   req.session.destroy()
   res.json({ success: true })
 })
+
+router.get('/organizations', async (req, res) => {
+  const { accessToken } = req.query
+
+  if (!accessToken) {
+    return res.status(400).json({ error: "accessToken is required" })
+  }
+
+  try {
+    const result = await getOrganizations(accessToken)
+    res.json(result);
+  } catch (err) {
+    console.error('Error fething LinkedIn organizations', err)
+    res.status(500).json({ error: err.message });
+  }
+});
 
 export default router

@@ -29,6 +29,7 @@ async function fetchWithProxy(url) {
 
 export async function scrapeLinkedInPost(url) {
   try {
+    console.log("Scraping content...")
     const html = await fetchWithProxy(url)
     const $ = cheerio.load(html)
 

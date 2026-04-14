@@ -24,17 +24,19 @@ export async function getProfile(accessToken) {
   return res.data
 }
 
-export async function publishPost({ accessToken, userId, content, imageUrl }) {
-  console.log('Publishing with userId:', userId)
+export async function publishPost({ accessToken, userId, content, imageUrl, organizationId }) {
+  console.log('Publishing with userId:', userId, '| orgId: ', organizationId || "none")
 
-  // Append image URL to content if present — LinkedIn UGC API
-  // requires asset upload for images, so we include it as a link instead
+  const authorUrn = organizationId ? `urn:li:organization:${organizationId}` : `urn:li:person:${userId}`
+
+  console.log('Author URN: ', authorUrn)
+
   const finalContent = imageUrl
     ? `${content}\n\n${imageUrl}`
     : content
 
   const postBody = {
-    author: `urn:li:person:${userId}`,
+    author: authorUrn,
     lifecycleState: 'PUBLISHED',
     specificContent: {
       'com.linkedin.ugc.ShareContent': {
@@ -60,4 +62,71 @@ export async function publishPost({ accessToken, userId, content, imageUrl }) {
   )
 
   return res.data
+}
+
+
+export async function getOrganizations(accessToken) {
+  try {
+    // Use roleAssignee to find orgs where user is admin
+    const res = await axios.get(
+      'https://api.linkedin.com/v2/organizationAcls?q=roleAssignee&role=ADMINISTRATOR&state=APPROVED&count=10',
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'X-Restli-Protocol-Version': '2.0.0',
+          'LinkedIn-Version': '202401',
+        },
+      }
+    )
+
+    const elements = res.data.elements || []
+    if (elements.length === 0) return []
+
+    // Fetch name for each org
+    const orgs = await Promise.all(
+      elements.map(async (el) => {
+        try {
+          const orgUrn = el.organization || el.organizationalTarget
+          const orgId = orgUrn.split(':').pop()
+
+          const orgRes = await axios.get(
+            `https://api.linkedin.com/v2/organizations/${orgId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'X-Restli-Protocol-Version': '2.0.0',
+                'LinkedIn-Version': '202401',
+              },
+            }
+          )
+
+          const name =
+            orgRes.data.localizedName ||
+            Object.values(orgRes.data.name?.localized || {})[0] ||
+            'Company Page'
+
+          let logo = null
+          try {
+            const logoUrn = orgRes.data.logoV2?.['original~']?.elements?.[0]?.identifiers?.[0]?.identifier
+            if (logoUrn) logo = logoUrn
+          } catch {
+            logo = null
+          }
+
+          return { id: orgId, name, logo }
+        } catch (err) {
+          console.error('Failed to fetch org details:', err.response?.data || err.message)
+          return null
+        }
+      })
+    )
+
+    return orgs.filter(Boolean)
+  } catch (err) {
+    console.error(
+      'Error fetching LinkedIn organizations:',
+      err.response?.data || err.message
+    )
+    return []
+  }
 }

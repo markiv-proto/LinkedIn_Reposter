@@ -17,6 +17,7 @@ export function startScheduler() {
                     userId: post.userId,
                     content: post.content,
                     imageUrl: post.imageUrl,
+                    organizationId: post.organizationId || null,
                 })
                 post.status = 'published'
                 post.linkedInPostId = result.id

@@ -1,24 +1,53 @@
-import { useState } from 'react'
-import { API_URL } from '../api'
+import { useState, useEffect } from 'react';
+import { API_URL } from '../api';
 
 export default function PublishPanel({ regenData, user }) {
-  const [scheduledAt, setScheduledAt] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState(null)
-  const [error, setError] = useState(null)
+  const [scheduledAt, setScheduledAt] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [orgsLoading, setOrgsLoading] = useState(false);
+  const [organizations, setOrganizations] = useState([]);
+  const [selectedOrg, setSelectedOrg] = useState('personal');
+
+  useEffect(() => {
+    async function loadOrgs() {
+      if (!user || !user.accessToken) return;
+      setOrgsLoading(true);
+      try {
+        const res = await fetch(`${API_URL}/api/auth/organizations?accessToken=${user.accessToken}`, {
+          method: 'GET',
+          credentials: 'include',
+        });
+        const data = await res.json();
+        setOrganizations(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to load LinkedIn organizations', err);
+        setOrganizations([]);
+      } finally {
+        setOrgsLoading(false);
+      }
+    }
+    loadOrgs();
+  }, [user]);
 
   if (!user) {
     return (
       <div className="mt-4 p-4 rounded-xl bg-yellow-50 border border-yellow-200 text-sm text-yellow-700">
         Connect your LinkedIn account above to publish or schedule this post.
       </div>
-    )
+    );
   }
 
   const handlePostNow = async () => {
-    setLoading(true)
-    setError(null)
-    setResult(null)
+
+    console.log('Posting as:', selectedOrg)  // ← add this
+    console.log('organizationId:', selectedOrg !== 'personal' ? selectedOrg : null)
+
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
     try {
       const res = await fetch(`${API_URL}/api/publish/now`, {
         method: 'POST',
@@ -28,28 +57,26 @@ export default function PublishPanel({ regenData, user }) {
           content: regenData.content,
           imageUrl: regenData.imageUrl,
           userId: user.id,
-          accessToken: user.accessToken
+          accessToken: user.accessToken,
+          organizationId: selectedOrg !== 'personal' ? selectedOrg : null,
         }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      setResult({ type: 'posted', postId: data.postId })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setResult({ type: 'posted', postId: data.postId });
     } catch (err) {
-      setError(err.message)
+      setError(err.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleSchedule = async () => {
-    if (!scheduledAt) return
-    setLoading(true)
-    setError(null)
-    setResult(null)
+    if (!scheduledAt) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
     try {
-      const localDate = new Date(scheduledAt)
-      const isoWithOffset = localDate.toISOString()
-
       const res = await fetch(`${API_URL}/api/publish/schedule`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -57,48 +84,50 @@ export default function PublishPanel({ regenData, user }) {
         body: JSON.stringify({
           content: regenData.content,
           imageUrl: regenData.imageUrl,
-          scheduledAt: isoWithOffset,
+          scheduledAt: new Date(scheduledAt).toISOString(),
           userId: user.id,
           accessToken: user.accessToken,
+          organizationId: selectedOrg !== 'personal' ? selectedOrg : null,
         }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      setResult({ type: 'scheduled', scheduledAt: data.scheduledAt })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setResult({ type: 'scheduled', scheduledAt: data.scheduledAt });
     } catch (err) {
-      setError(err.message)
+      setError(err.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   if (result) {
-
-    const postUrl = result.type === "posted" ? `https://www.linkedin.com/feed/update/${result.postId}`
+    const postUrl = result.type === 'posted'
+      ? `https://www.linkedin.com/feed/update/${result.postId}`
       : null;
 
-    console.log('Post URL:', postUrl)
-
     return (
-      <div className={` p-4 rounded-xl border text-sm ${result.type === 'posted'
+      <div className={`p-4 rounded-xl border text-sm ${result.type === 'posted'
         ? 'bg-green-50 border-green-200 text-green-700'
         : 'bg-blue-50 border-blue-200 text-blue-700'
         }`}>
         {result.type === 'posted' ? (
           <div>
-            <p>Post published successfully! ID: <span className="font-mono text-xs">{result.postId}</span></p>
+            <p>Post published successfully!</p>
 
-            <a
-              href={postUrl}
+            <a href={postUrl}
               target="_blank"
               rel="noreferrer"
-              className="text-sm font-medium text-blue-600 underline hover:text-blue-800 block mt-1"
+              className="w-fit text-sm font-medium text-blue-600 underline hover:text-blue-800 block mt-1"
             >
               Open post on LinkedIn
             </a>
           </div>
         ) : (
-          <p>Post scheduled for {new Date(result.scheduledAt).toLocaleString()}</p>
+          <p>Post scheduled for {new Date(result.scheduledAt).toLocaleString('en-IN', {
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', hour12: true,
+          })}</p>
         )}
         <button
           onClick={() => setResult(null)}
@@ -107,7 +136,7 @@ export default function PublishPanel({ regenData, user }) {
           Post another
         </button>
       </div>
-    )
+    );
   }
 
   return (
@@ -120,12 +149,95 @@ export default function PublishPanel({ regenData, user }) {
         </div>
       )}
 
+      {/* Post as — always visible */}
+      <div className="mb-5">
+        <p className="text-xs text-gray-400 mb-2">Post as</p>
+
+        {orgsLoading ? (
+          <p className="text-xs text-gray-400 animate-pulse">Loading pages...</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+
+            {/* Personal profile */}
+            <label className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors ${selectedOrg === 'personal'
+              ? 'border-blue-400 bg-blue-50'
+              : 'border-gray-200 hover:bg-gray-50'
+              }`}>
+              <input
+                type="radio"
+                name="postAs"
+                value="personal"
+                checked={selectedOrg === 'personal'}
+                onChange={() => setSelectedOrg('personal')}
+                className="accent-blue-600"
+              />
+              <div className="flex items-center gap-2">
+                {user.picture ? (
+                  <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full object-cover" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xs font-medium">
+                    {user.name?.[0]}
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                  <p className="text-xs text-gray-400">Personal profile</p>
+                </div>
+              </div>
+            </label>
+
+            {/* Company pages */}
+            {organizations.map((org) => (
+              <label
+                key={org.id}
+                className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors ${selectedOrg === org.id
+                  ? 'border-blue-400 bg-blue-50'
+                  : 'border-gray-200 hover:bg-gray-50'
+                  }`}
+              >
+                <input
+                  type="radio"
+                  name="postAs"
+                  value={org.id}
+                  checked={selectedOrg === org.id}
+                  onChange={() => setSelectedOrg(org.id)}
+                  className="accent-blue-600"
+                />
+                <div className="flex items-center gap-2">
+                  {org.logo ? (
+                    <img src={org.logo} alt={org.name} className="w-8 h-8 rounded object-cover" />
+                  ) : (
+                    <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-gray-600 text-xs font-medium">
+                      {org.name?.[0]}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{org.name}</p>
+                    <p className="text-xs text-gray-400">Company page</p>
+                  </div>
+                </div>
+              </label>
+            ))}
+
+            {/* No company pages */}
+            {organizations.length === 0 && (
+              <div className="p-2.5 rounded-lg border border-dashed border-gray-200">
+                <p className="text-xs text-gray-400">No company pages found.</p>
+              </div>
+            )}
+
+          </div>
+        )}
+      </div>
+
+      <div className="h-px bg-gray-100 mb-4" />
+
       <button
         onClick={handlePostNow}
         disabled={loading}
         className="w-full py-2.5 rounded-lg bg-[#0A66C2] hover:bg-[#004182] text-white text-sm font-medium disabled:opacity-50 transition-colors mb-3"
       >
-        {loading ? 'Publishing...' : 'Post now'}
+        {loading ? 'Publishing...' : selectedOrg !== 'personal' ? 'Post now (as company)' : 'Post now'}
       </button>
 
       <div className="flex items-center gap-2 mb-3">
@@ -147,8 +259,8 @@ export default function PublishPanel({ regenData, user }) {
         disabled={loading || !scheduledAt}
         className="w-full py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
       >
-        {loading ? 'Scheduling...' : 'Schedule post'}
+        {loading ? 'Scheduling...' : selectedOrg !== 'personal' ? 'Schedule (as company)' : 'Schedule post'}
       </button>
     </div>
-  )
+  );
 }
