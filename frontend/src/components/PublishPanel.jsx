@@ -56,6 +56,8 @@ export default function PublishPanel({ regenData, user }) {
         body: JSON.stringify({
           content: regenData.content,
           imageUrl: regenData.imageUrl,
+          imageBase64: regenData.imageBase64 || null,
+          imageMimeType: regenData.imageMimeType || null,
           userId: user.id,
           accessToken: user.accessToken,
           organizationId: selectedOrg !== 'personal' ? selectedOrg : null,
@@ -83,8 +85,9 @@ export default function PublishPanel({ regenData, user }) {
         credentials: 'include',
         body: JSON.stringify({
           content: regenData.content,
-          imageUrl: regenData.imageUrl,
-          scheduledAt: new Date(scheduledAt).toISOString(),
+          imageUrl: regenData.imageUrl || null,
+          imageBase64: regenData.imageBase64 || null,
+          imageMimeType: regenData.imageMimeType || null,
           userId: user.id,
           accessToken: user.accessToken,
           organizationId: selectedOrg !== 'personal' ? selectedOrg : null,

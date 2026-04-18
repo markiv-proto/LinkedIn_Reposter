@@ -52,10 +52,10 @@ export default function RegenCard({ data, onRegenContent, onRegenImage, loading 
       </div>
 
       {/* Image */}
-      {data.imageUrl && (
+      {(data.previewUrl || data.imageUrl) && (
         <div className="border-t border-gray-100 relative group">
           <img
-            src={data.imageUrl}
+            src={data.previewUrl || data.imageUrl}
             alt="AI generated"
             className="w-full object-cover max-h-72"
             onError={(e) => (e.target.style.display = 'none')}

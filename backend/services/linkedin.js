@@ -24,24 +24,67 @@ export async function getProfile(accessToken) {
   return res.data
 }
 
-export async function publishPost({ accessToken, userId, content, imageUrl, organizationId }) {
+export async function publishPost({ accessToken, userId, content, imageUrl, imageBase64, imageMimeType, organizationId }) {
   console.log('Publishing with userId:', userId, '| orgId: ', organizationId || "none")
 
-  const authorUrn = organizationId ? `urn:li:organization:${organizationId}` : `urn:li:person:${userId}`
+  const authorUrn = organizationId
+    ? `urn:li:organization:${organizationId}`
+    : `urn:li:person:${userId}`
 
   console.log('Author URN: ', authorUrn)
 
-  const finalContent = imageUrl
-    ? `${content}\n\n${imageUrl}`
-    : content
+  let assetUrn = null
+
+  try {
+    if (imageBase64 && imageMimeType) {
+      // HuggingFace path — upload from buffer directly
+      console.log('Uploading image from base64 buffer...')
+      assetUrn = await uploadBase64ImageToLinkedIn(
+        accessToken,
+        authorUrn,
+        imageBase64,
+        imageMimeType
+      )
+    } else if (imageUrl && !imageUrl.startsWith('data:')) {
+      // Pollinations path — fetch URL then upload
+      console.log('Fetching image from URL for upload:', imageUrl)
+      const imgRes = await axios.get(imageUrl, {
+        responseType: 'arraybuffer',
+        timeout: 20000,
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+      })
+      const buffer = Buffer.from(imgRes.data)
+      const mimeType = imgRes.headers['content-type']?.split(';')[0] || 'image/jpeg'
+      console.log('Image fetched — size:', buffer.length, 'type:', mimeType)
+      assetUrn = await uploadBase64ImageToLinkedIn(
+        accessToken,
+        authorUrn,
+        buffer.toString('base64'),
+        mimeType
+      )
+    }
+  } catch (err) {
+    console.error('Image upload failed, posting without image:', err.message)
+    assetUrn = null
+  }
 
   const postBody = {
     author: authorUrn,
     lifecycleState: 'PUBLISHED',
     specificContent: {
       'com.linkedin.ugc.ShareContent': {
-        shareCommentary: { text: finalContent },
-        shareMediaCategory: 'NONE',
+        shareCommentary: { text: content },
+        shareMediaCategory: assetUrn ? 'IMAGE' : 'NONE',
+        ...(assetUrn && {
+          media: [
+            {
+              status: 'READY',
+              media: assetUrn,
+              description: { text: 'Post image' },
+              title: { text: 'Image' },
+            }
+          ]
+        })
       },
     },
     visibility: {
@@ -60,10 +103,8 @@ export async function publishPost({ accessToken, userId, content, imageUrl, orga
       },
     }
   )
-
   return res.data
 }
-
 
 export async function getOrganizations(accessToken) {
   try {
@@ -128,5 +169,56 @@ export async function getOrganizations(accessToken) {
       err.response?.data || err.message
     )
     return []
+  }
+}
+
+export async function uploadBase64ImageToLinkedIn(accessToken, authorUrn, base64, mimeType) {
+  try {
+    // Step 1 - register upload
+    const registerRes = await axios.post(
+      'https://api.linkedin.com/v2/assets?action=registerUpload',
+      {
+        registerUploadRequest: {
+          recipes: ['urn:li:digitalmediaRecipe:feedshare-image'],
+          owner: authorUrn,
+          serviceRelationships: [
+            {
+              relationshipType: 'OWNER',
+              identifier: 'urn:li:userGeneratedContent',
+            },
+          ],
+        },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'X-Restli-Protocol-Version': '2.0.0',
+        },
+      }
+    )
+
+    const uploadUrl = registerRes.data.value.uploadMechanism[
+      'com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest'
+    ].uploadUrl
+
+    const assetUrn = registerRes.data.value.asset
+
+    // Step 2 - upload buffer
+    const imageBuffer = Buffer.from(base64, 'base64')
+    await axios.put(uploadUrl, imageBuffer, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': mimeType,
+      },
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+    })
+
+    console.log('Image uploaded to LinkedIn - asset URN:', assetUrn)
+    return assetUrn
+  } catch (err) {
+    console.error('LinkedIn image upload failed:', err.response?.data || err.message)
+    return null
   }
 }

@@ -11,7 +11,7 @@ const router = Router()
 //     next()
 // }
 router.post('/now', async (req, res) => {
-  const { content, imageUrl, userId, accessToken, organizationId } = req.body
+  const { content, imageUrl, imageBase64, imageMimeType, userId, accessToken, organizationId } = req.body
 
   console.log("Publish request - userId: ", userId, "| organizationId: ", organizationId)
 
@@ -21,7 +21,15 @@ router.post('/now', async (req, res) => {
   if (!content) return res.status(400).json({ error: 'Content is required' })
 
   try {
-    const result = await publishPost({ accessToken, userId, content, imageUrl, organizationId: organizationId || null, })
+    const result = await publishPost({
+      accessToken,
+      userId,
+      content,
+      imageUrl: imageUrl || null,
+      imageBase64: imageBase64 || null,
+      imageMimeType: imageMimeType || null,
+      organizationId: organizationId || null,
+    })
     res.json({ success: true, postId: result.id })
   } catch (err) {
     console.error('Publish error: ', err.response?.data || err.message)
@@ -49,9 +57,9 @@ router.post('/schedule', async (req, res) => {
       userId,
       accessToken,
       content,
-      imageUrl,
+      imageUrl: imageUrl || null,
       scheduledAt: new Date(scheduledAt),
-      organizationId,
+      organizationId: organizationId || null,
     })
     res.json({ success: true, jobId: post._id, scheduledAt: post.scheduledAt })
   } catch (err) {
@@ -72,12 +80,12 @@ router.get('/scheduled', async (req, res) => {
 
 
 router.delete('/scheduled/:id', async (req, res) => {
-    try {
-        await ScheduledPost.findByIdAndDelete(req.params.id)
-        res.json({ success: true })
-    } catch (err) {
-        res.status(500).json({ error: err.message })
-    }
+  try {
+    await ScheduledPost.findByIdAndDelete(req.params.id)
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
 })
 
 export default router

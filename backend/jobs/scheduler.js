@@ -7,7 +7,7 @@ export function startScheduler() {
         const now = new Date()
         const pending = await ScheduledPost.find({
             status: "pending",
-            scheduledAt: {$lte: now},
+            scheduledAt: { $lte: now },
         })
 
         for (const post of pending) {
@@ -17,6 +17,8 @@ export function startScheduler() {
                     userId: post.userId,
                     content: post.content,
                     imageUrl: post.imageUrl,
+                    imageBase64: post.imageBase64 || null,
+                    imageMimeType: post.imageMimeType || null,
                     organizationId: post.organizationId || null,
                 })
                 post.status = 'published'
