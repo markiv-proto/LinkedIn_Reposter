@@ -8,6 +8,7 @@ import regenRouter from './routes/regen.js'
 import authRouter from './routes/auth.js'
 import publishRouter from './routes/publish.js'
 import { startScheduler } from './jobs/scheduler.js'
+import imageRouter from './routes/image.js'
 
 dotenv.config()
 
@@ -38,6 +39,7 @@ app.use('/api/scrape', scrapeRouter)
 app.use('/api/regen', regenRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/publish', publishRouter)
+app.use('/api/image', imageRouter)
 
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }))

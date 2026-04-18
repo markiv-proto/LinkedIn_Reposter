@@ -37,7 +37,6 @@ export async function publishPost({ accessToken, userId, content, imageUrl, imag
 
   try {
     if (imageBase64 && imageMimeType) {
-      // HuggingFace path — upload from buffer directly
       console.log('Uploading image from base64 buffer...')
       assetUrn = await uploadBase64ImageToLinkedIn(
         accessToken,

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 
-export default function RegenCard({ data, onRegenContent, onRegenImage, loading }) {
+export default function RegenCard({ data, onRegenContent, loading }) {
   const [editedContent, setEditedContent] = useState(data.content)
   const [isEditing, setIsEditing] = useState(false)
 
@@ -16,7 +16,7 @@ export default function RegenCard({ data, onRegenContent, onRegenImage, loading 
       <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-gray-100">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-          <span className="text-xs font-medium text-blue-600">AI Regenerated</span>
+          <span className="text-xs font-medium text-blue-600">Text</span>
         </div>
         <div className="flex gap-2">
           <button
@@ -50,25 +50,6 @@ export default function RegenCard({ data, onRegenContent, onRegenImage, loading 
           {loading ? 'Rewriting...' : '↺ Rewrite again'}
         </button>
       </div>
-
-      {/* Image */}
-      {(data.previewUrl || data.imageUrl) && (
-        <div className="border-t border-gray-100 relative group">
-          <img
-            src={data.previewUrl || data.imageUrl}
-            alt="AI generated"
-            className="w-full object-cover max-h-72"
-            onError={(e) => (e.target.style.display = 'none')}
-          />
-          <button
-            onClick={onRegenImage}
-            disabled={loading}
-            className="absolute bottom-3 right-3 px-3 py-1.5 bg-black/60 hover:bg-black/80 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            ↺ New image
-          </button>
-        </div>
-      )}
     </div>
   )
 }

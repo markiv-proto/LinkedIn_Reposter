@@ -5,6 +5,7 @@ import RegenControls from './components/RegenControls'
 import RegenCard from './components/RegenCard'
 import LinkedInConnect from './components/LinkedInConnect'
 import PublishPanel from './components/PublishPanel'
+import ImagePickerPanel from './components/ImagePickerPanel'
 import { API_URL } from './api'
 
 export default function App() {
@@ -16,6 +17,7 @@ export default function App() {
   const [regenLoading, setRegenLoading] = useState(false)
   const [error, setError] = useState(null)
   const [user, setUser] = useState(null)
+  const [attachedImage, setAttachedImage] = useState(null)
 
   useEffect(() => {
 
@@ -71,6 +73,7 @@ export default function App() {
     setError(null)
     setPostData(null)
     setRegenData(null)
+    setAttachedImage(null)
     try {
       const res = await fetch(`${API_URL}/api/scrape`, {
         method: 'POST',
@@ -104,6 +107,7 @@ export default function App() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setRegenData(data)
+      setAttachedImage(null)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -111,29 +115,29 @@ export default function App() {
     }
   }
 
-  const handleRegenImage = async () => {
-    if (!regenData) return
-    setRegenLoading(true)
-    try {
-      const res = await fetch(`${API_URL}/api/regen`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: regenData.content,
-          tone,
-          length,
-          regenerateImage: true,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      setRegenData((prev) => ({ ...prev, imageUrl: data.imageUrl }))
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setRegenLoading(false)
-    }
-  }
+  // const handleRegenImage = async () => {
+  //   if (!regenData) return
+  //   setRegenLoading(true)
+  //   try {
+  //     const res = await fetch(`${API_URL}/api/regen`, {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({
+  //         content: regenData.content,
+  //         tone,
+  //         length,
+  //         regenerateImage: true,
+  //       }),
+  //     })
+  //     const data = await res.json()
+  //     if (!res.ok) throw new Error(data.error)
+  //     setRegenData((prev) => ({ ...prev, imageUrl: data.imageUrl }))
+  //   } catch (err) {
+  //     setError(err.message)
+  //   } finally {
+  //     setRegenLoading(false)
+  //   }
+  // }
 
   return (
     <div className="max-w-full md:h-dvh flex flex-col bg-blue-200 py-6 px-6 m-5 rounded-2xl overflow-hidden ">
@@ -195,8 +199,17 @@ export default function App() {
                   <RegenCard
                     data={regenData}
                     onRegenContent={handleRegen}
-                    onRegenImage={handleRegenImage}
                     loading={regenLoading}
+                  />
+                )}
+              </div>
+
+              {/* Image picker — appears after regen, separate from text */}
+              <div className="shrink-0">
+                {regenData && (
+                  <ImagePickerPanel
+                    postContent={regenData.content}
+                    onImageChange={setAttachedImage}
                   />
                 )}
               </div>
@@ -204,7 +217,7 @@ export default function App() {
               {/* Publish panel — appears after regen */}
               <div className="shrink-0">
                 {regenData && (
-                  <PublishPanel regenData={regenData} user={user} />
+                  <PublishPanel regenData={regenData} attachedImage={attachedImage} user={user} />
                 )}
               </div>
             </div>

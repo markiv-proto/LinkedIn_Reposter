@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { API_URL } from '../api';
 
-export default function PublishPanel({ regenData, user }) {
+export default function PublishPanel({ regenData, attachedImage, user }) {
   const [scheduledAt, setScheduledAt] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -55,9 +55,9 @@ export default function PublishPanel({ regenData, user }) {
         credentials: 'include',
         body: JSON.stringify({
           content: regenData.content,
-          imageUrl: regenData.imageUrl,
-          imageBase64: regenData.imageBase64 || null,
-          imageMimeType: regenData.imageMimeType || null,
+          imageUrl: attachedImage?.source === 'unsplash' || attachedImage?.source === 'pexels' ? (attachedImage?.url ?? null) : null,
+          imageBase64: attachedImage?.source === 'ai' || attachedImage?.source === 'upload' ? (attachedImage?.base64 ?? null) : null,
+          imageMimeType: attachedImage?.source === 'ai' || attachedImage?.source === 'upload' ? (attachedImage?.mimeType ?? null) : null,
           userId: user.id,
           accessToken: user.accessToken,
           organizationId: selectedOrg !== 'personal' ? selectedOrg : null,
